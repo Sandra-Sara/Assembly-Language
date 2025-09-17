@@ -75,3 +75,8 @@ main:
     pop     rbp
     xor     edi, edi
     call    exit
+Run by using this
+
+nasm -f elf64 gcd.asm -o gcd.o
+gcc -no-pie -o gcd gcd.o
+./gcd
