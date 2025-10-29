@@ -1,60 +1,70 @@
-global main
-extern scanf
 extern printf
-extern exit
+extern scanf
 
-section .data
-    in_fmt     db "%d", 0
-    out_fmt    db "Reversed = %d", 10, 0
+SECTION .data
+in_str_fmt: db "%s",0
+out_str_fmt: db "%s",10,0
+str: resb 100       ; buffer to store input string
+rev_str: resb 100   ; buffer to store reversed string
 
-section .bss
-    n       resd 1
-    rev     resd 1
+SECTION .text
+global main
 
-section .text
 main:
-    ; --- Function prologue and stack alignment ---
-    push    rbp
-    mov     rbp, rsp
-    and     rsp, -16           ; align stack to 16
+    push rbp
 
-    ; scanf("%d", &n)
-    lea     rdi, [rel in_fmt]  ; format string
-    lea     rsi, [rel n]       ; &n
-    xor     rax, rax
-    call    scanf
+    ; read string
+    mov rdi, in_str_fmt
+    lea rsi, [str]
+    xor rax, rax
+    call scanf
 
-    ; eax = n
-    mov     eax, dword [rel n]
-    xor     ebx, ebx           ; rev = 0
+    ; call reverse_str
+    lea rdi, [str]     ; source string
+    lea rsi, [rev_str] ; destination string
+    call reverse_str
 
-.reverse_loop:
-    cmp     eax, 0             ; while (n != 0)
-    je      .done_reverse
+    ; print reversed string
+    mov rdi, out_str_fmt
+    lea rsi, [rev_str]
+    xor rax, rax
+    call printf
 
-    mov     edx, 0
-    mov     ecx, 10
-    div     ecx                ; eax / 10 -> quotient in eax, remainder in edx
+    mov rax, 0
+    pop rbp
+    ret
 
-    ; rev = rev * 10 + remainder
-    imul    ebx, ebx, 10
-    add     ebx, edx
+; reverse_str: reverses string from rdi to rsi
+; rdi = source string, rsi = destination buffer
+reverse_str:
+    push rbp
+    mov rbp, rsp
 
-    jmp     .reverse_loop
+    mov rdx, rdi       ; save source pointer in rdx
+    xor rcx, rcx       ; rcx = length counter
 
-.done_reverse:
-    ; store reversed result
-    mov     dword [rel rev], ebx
+.rev_len:
+    mov al, [rdx+rcx]
+    cmp al, 0
+    je .rev_copy       ; reached end of string
+    inc rcx
+    jmp .rev_len
 
-    ; printf("Reversed = %d\n", rev)
-    mov     esi, dword [rel rev]
-    lea     rdi, [rel out_fmt]
-    xor     rax, rax
-    call    printf
+.rev_copy:
+    dec rcx            ; last valid index
+    xor r8, r8         ; r8 = dest index
 
-    ; exit(0)
-    mov     rsp, rbp
-    pop     rbp
-    xor     edi, edi
-    call    exit
+.rev_loop:
+    cmp rcx, -1
+    jl .done
+    mov al, [rdi+rcx]
+    mov [rsi+r8], al
+    inc r8
+    dec rcx
+    jmp .rev_loop
+
+.done:
+    mov byte [rsi+r8], 0   ; null terminate
+    pop rbp
+    ret
 
