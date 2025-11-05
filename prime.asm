@@ -4,8 +4,8 @@ extern printf
 extern exit
 
 section .data
-    in_fmt      db "%d", 0
-    out_prime   db "%d is a prime number", 10, 0
+    in_fmt       db "%d", 0
+    out_prime    db "%d is a prime number", 10, 0
     out_notprime db "%d is not a prime number", 10, 0
 
 section .bss
@@ -13,53 +13,47 @@ section .bss
 
 section .text
 main:
-    ; --- Align stack to 16 bytes before calling C functions ---
     push    rbp
     mov     rbp, rsp
-    and     rsp, -16          ; align stack
+    and     rsp, -16
 
     ; scanf("%d", &n)
     lea     rdi, [rel in_fmt]
     lea     rsi, [rel n]
-    xor     rax, rax
+    xor     eax, eax
     call    scanf
 
-    ; load number into eax
-    mov     eax, dword [rel n]
+    mov     eax, [n]
     cmp     eax, 2
-    jb      .not_prime        ; numbers < 2 are not prime
-    je      .is_prime         ; 2 is prime
+    jb      .not_prime
+    je      .is_prime
 
-    ; check divisibility from 2 to sqrt(n)
-    mov     ecx, 2            ; divisor = 2
+    mov     ecx, 2          ; divisor = 2
+
 .sqrt_loop:
-    mov     edx, 0
-    mov     ebx, ecx
-    div     ebx               ; eax / ecx → quotient in eax, remainder in edx
-    mov     eax, dword [rel n] ; restore eax = n
+    mov     eax, [n]        ; reload n before each division
+    cdq                      ; sign-extend EAX → EDX:EAX
+    div     ecx              ; EAX / ECX
     test    edx, edx
-    je      .not_prime        ; divisible → not prime
+    je      .not_prime       ; if remainder == 0 → not prime
 
     inc     ecx
-    mov     ebx, eax
     mov     eax, ecx
     imul    eax, eax
-    cmp     eax, dword [rel n]
-    jbe     .sqrt_loop         ; loop while divisor^2 <= n
+    cmp     eax, [n]
+    jbe     .sqrt_loop       ; while (divisor^2 <= n)
 
 .is_prime:
-    ; printf("%d is a prime number\n", n)
-    mov     esi, dword [rel n]
+    mov     esi, [n]
     lea     rdi, [rel out_prime]
-    xor     rax, rax
+    xor     eax, eax
     call    printf
     jmp     .exit
 
 .not_prime:
-    ; printf("%d is not a prime number\n", n)
-    mov     esi, dword [rel n]
+    mov     esi, [n]
     lea     rdi, [rel out_notprime]
-    xor     rax, rax
+    xor     eax, eax
     call    printf
 
 .exit:
@@ -67,8 +61,8 @@ main:
     pop     rbp
     xor     edi, edi
     call    exit
-    
-Run by using this
+
+
 
 nasm -f elf64 prime.asm -o prime.o
 gcc -no-pie -o prime prime.o
